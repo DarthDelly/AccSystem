@@ -31,7 +31,7 @@ public class TransactionFolder {
     }
 
     /* Over here creates the File Transactions, example (Transactions1.csv, Transactions2.csv, etc.) */   
-    /*public static void setTransactions(String name) {
+    public static void setTransactions(String name) {
         running = true;
         
         while (running) {
@@ -55,7 +55,7 @@ public class TransactionFolder {
 
     public static void transactionStop() {
         running = false;
-    }*/
+    }
 
     /* This method is what you gonna call to verofy the files you want to know exists */
     public static String openFile(String path) {
