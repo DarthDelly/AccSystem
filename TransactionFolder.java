@@ -31,13 +31,19 @@ public class TransactionFolder {
     }
 
     /* Over here creates the File Transactions, example (Transactions1.csv, Transactions2.csv, etc.) */   
-    /*public static void setTransactions(String name) {
+    public static void setTransactions(String name) {
         running = true;
         
         while (running) {
             File mainFolder = new File(MAIN_FOLDER);
             File fileFolder = new File(mainFolder, "Accounts_" + name);
-            File transactionFile = new File(fileFolder, "Transactions" + accountNum + ".csv");
+            
+            static String nNew1 (String n) {
+                String nName = scan.nextLine();
+                return nName;
+            }
+
+            File transactionFile = new File(fileFolder, "Transactions" + "\n"  + nNew1() + accountNum + ".csv");
 
             try {
                 if (transactionFile.createNewFile()) {
@@ -55,7 +61,7 @@ public class TransactionFolder {
 
     public static void transactionStop() {
         running = false;
-    }*/
+    }
 
     /* This method is what you gonna call to verofy the files you want to know exists */
     public static String openFile(String path) {
@@ -85,4 +91,4 @@ public class TransactionFolder {
     }
     return rows;
 }
-}
+}  
