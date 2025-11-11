@@ -45,7 +45,7 @@ public class TransactionFolder {
 
             String nNew2 = TransactionFolder.nNew1();
 
-            File transactionFile = new File(fileFolder, "Transactions" + "\n"  + TransactionFolder.nNew2() + accountNum + ".csv");
+            File transactionFile = new File(fileFolder, "Transactions" + "\n"  + nNew2 + accountNum + ".csv");
 
             try {
                 if (transactionFile.createNewFile()) {
