@@ -7,7 +7,7 @@ public class GeneralJournal extends JFrame {
     private JTable journalTable;
     private DefaultTableModel tableModel;
 
-    // Store transactions (could be linked from AccountingSystem10)
+
     private static ArrayList<JournalEntry> journalEntries = new ArrayList<>();
 
     public GeneralJournal() {
@@ -16,7 +16,7 @@ public class GeneralJournal extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Table columns following your required format
+
         String[] columns = {"Date", "Particulars", "Debit (₱)", "Credit (₱)", "Explanation"};
         tableModel = new DefaultTableModel(columns, 0);
         journalTable = new JTable(tableModel);
@@ -26,13 +26,12 @@ public class GeneralJournal extends JFrame {
         JScrollPane scrollPane = new JScrollPane(journalTable);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Load example entries (for testing)
+
         loadJournalEntries();
 
         setVisible(true);
     }
 
-    // Load stored entries into the table
     private void loadJournalEntries() {
         tableModel.setRowCount(0);
         for (JournalEntry entry : journalEntries) {
@@ -46,13 +45,10 @@ public class GeneralJournal extends JFrame {
             tableModel.addRow(row);
         }
     }
-
-    // Add a new entry (this can be called by AccountingSystem10)
     public static void addJournalEntry(JournalEntry entry) {
         journalEntries.add(entry);
     }
 
-    // Journal Entry class
     public static class JournalEntry {
         private String date;
         private String particulars;
