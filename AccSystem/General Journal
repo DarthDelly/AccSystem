@@ -1,0 +1,84 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.ArrayList;
+
+public class GeneralJournal extends JFrame {
+    private JTable journalTable;
+    private DefaultTableModel tableModel;
+
+    // Store transactions (could be linked from AccountingSystem10)
+    private static ArrayList<JournalEntry> journalEntries = new ArrayList<>();
+
+    public GeneralJournal() {
+        setTitle("General Journal");
+        setSize(900, 500);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Table columns following your required format
+        String[] columns = {"Date", "Particulars", "Debit (₱)", "Credit (₱)", "Explanation"};
+        tableModel = new DefaultTableModel(columns, 0);
+        journalTable = new JTable(tableModel);
+        journalTable.setRowHeight(25);
+        journalTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        JScrollPane scrollPane = new JScrollPane(journalTable);
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Load example entries (for testing)
+        loadJournalEntries();
+
+        setVisible(true);
+    }
+
+    // Load stored entries into the table
+    private void loadJournalEntries() {
+        tableModel.setRowCount(0);
+        for (JournalEntry entry : journalEntries) {
+            Object[] row = {
+                entry.getDate(),
+                entry.getParticulars(),
+                entry.getDebit() > 0 ? String.format("%.2f", entry.getDebit()) : "",
+                entry.getCredit() > 0 ? String.format("%.2f", entry.getCredit()) : "",
+                entry.getExplanation()
+            };
+            tableModel.addRow(row);
+        }
+    }
+
+    // Add a new entry (this can be called by AccountingSystem10)
+    public static void addJournalEntry(JournalEntry entry) {
+        journalEntries.add(entry);
+    }
+
+    // Journal Entry class
+    public static class JournalEntry {
+        private String date;
+        private String particulars;
+        private double debit;
+        private double credit;
+        private String explanation;
+
+        public JournalEntry(String date, String particulars, double debit, double credit, String explanation) {
+            this.date = date;
+            this.particulars = particulars;
+            this.debit = debit;
+            this.credit = credit;
+            this.explanation = explanation;
+        }
+
+        public String getDate() { return date; }
+        public String getParticulars() { return particulars; }
+        public double getDebit() { return debit; }
+        public double getCredit() { return credit; }
+        public String getExplanation() { return explanation; }
+    }
+
+    public static void main(String[] args) {
+        // Sample journal entries for testing
+
+        SwingUtilities.invokeLater(GeneralJournal::new);
+    }
+}
+
