@@ -78,3 +78,862 @@ public class GeneralJournal extends JFrame {
     }
 }
 
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
+import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.List;
+
+public class NewTransaction {
+    private final JFrame frame;
+    private JPanel bgPanel;
+    private JPanel adminPanel;
+    private boolean adminVisible = false;
+    private JPanel contentPanel;
+    private CardLayout cardLayout;
+
+    private final List<Transaction> transactions = new ArrayList<>();
+    private final Map<String, Double> accountBalances = new LinkedHashMap<>(); // preserve order
+    private final DefaultTableModel transactionsModel;
+    private final DefaultTableModel accountsModel;
+    private final DefaultTableModel journalModel;
+    private final DefaultTableModel ledgerModel;
+    private final DefaultTableModel assetModel;
+    private final DefaultTableModel liabilityModel;
+
+    private final DecimalFormat moneyFormat = new DecimalFormat("#,##0.00");
+    private final SimpleDateFormat inputDateFormat = new SimpleDateFormat("MM-dd-yyyy");
+
+    public NewTransaction() {
+        transactionsModel = new DefaultTableModel(new String[]{"Date", "Description", "Debit Account", "Credit Account", "Amount"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        accountsModel = new DefaultTableModel(new String[]{"Account", " Type ", "Balance"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        journalModel = new DefaultTableModel(new String[]{"Date", "Description", "Account", "Debit", "Credit"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        ledgerModel = new DefaultTableModel(new String[]{"Date", "Description", "Debit", "Credit", "Balance"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        assetModel = new DefaultTableModel(new String[]{"Asset", "Amount"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        liabilityModel = new DefaultTableModel(new String[]{"Liabilities & Equity", "Amount"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        for (String acc : getAllAccounts()) {
+            accountBalances.put(acc, 0.0);
+        }
+        frame = new JFrame("Accounting System ");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1100, 650);
+        frame.setResizable(false);
+        frame.setLocationRelativeTo(null);
+
+        bgPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                ImageIcon bg = new ImageIcon("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\pic2.png");
+                g.drawImage(bg.getImage(), 0, 0, getWidth(), getHeight(), this);
+            }
+        };
+        bgPanel.setLayout(null);
+
+        adminPanel = new JPanel() {
+            @Override
+            public boolean contains(int x, int y) {
+                return true;
+            }
+        };
+        adminPanel.setLayout(null);
+        adminPanel.setBackground(Color.WHITE);
+        adminPanel.setBounds(750, 0, 350, 650);
+        adminPanel.setVisible(false);
+        adminPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
+        adminPanel.setOpaque(true);
+        adminPanel.addMouseListener(new MouseAdapter() {});
+        adminPanel.addMouseMotionListener(new MouseMotionAdapter() {});
+
+        CircularImagePanel adminImage = new CircularImagePanel("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\icon1.jpg", 100);
+        adminImage.setBounds(125, 140, 100, 100);
+        adminPanel.add(adminImage);
+
+        JLabel adminLabel = new JLabel("Admin", SwingConstants.CENTER);
+        adminLabel.setFont(new Font("Poppins", Font.BOLD, 16));
+        adminLabel.setBounds(100, 250, 150, 30);
+        adminPanel.add(adminLabel);
+
+        JButton logoutBtn = new JButton("Log Out");
+        logoutBtn.setBounds(100, 310, 150, 40);
+        logoutBtn.setBackground(new Color(40, 40, 40));
+        logoutBtn.setForeground(Color.WHITE);
+        logoutBtn.setFont(new Font("Poppins", Font.BOLD, 13));
+        logoutBtn.setFocusPainted(false);
+        logoutBtn.setBorderPainted(false);
+        logoutBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        logoutBtn.setOpaque(true);
+        logoutBtn.setContentAreaFilled(true);
+        adminPanel.add(logoutBtn);
+
+        logoutBtn.addActionListener(e -> {
+            frame.dispose();
+            try {
+                new LOGIN();
+            } catch (Throwable t) {
+            }
+        });
+        bgPanel.add(adminPanel);
+
+        ImageIcon adminIcon = new ImageIcon("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\pic3.png");
+        Image scaledAdminIcon = adminIcon.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH);
+
+        JButton adminBtn = new JButton(new ImageIcon(scaledAdminIcon));
+        adminBtn.setBounds(995, 18, 65, 35);
+        adminBtn.setBackground(new Color(40, 40, 40));
+        adminBtn.setFocusPainted(false);
+        adminBtn.setBorder(BorderFactory.createLineBorder(new Color(60, 60, 60), 2, true));
+        adminBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        adminBtn.setContentAreaFilled(true);
+        adminBtn.setOpaque(true);
+        bgPanel.add(adminBtn);
+
+        adminBtn.addActionListener(e -> {
+            boolean showing = adminPanel.isVisible();
+
+            if (showing) {
+                adminPanel.setVisible(false);
+            } else {
+                adminPanel.setVisible(true);
+                bgPanel.setComponentZOrder(adminBtn, 0);
+                bgPanel.setComponentZOrder(adminPanel, 1);
+                adminBtn.requestFocusInWindow();
+            }
+
+            bgPanel.revalidate();
+            bgPanel.repaint();
+        });
+
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.setBounds(15, 85, 840, 510);
+        contentPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2, true));
+        contentPanel.add(new NewTransactionCard(), "newTransaction");
+        contentPanel.add(new TransactionsCard(), "transactions");
+        contentPanel.add(new AccountsCard(), "accounts");
+        contentPanel.add(new GeneralJournalCard(), "generalJournal");
+        contentPanel.add(new GeneralLedgerCard(), "generalLedger");
+        contentPanel.add(new BalanceSheetCard(), "balanceSheet");
+        cardLayout.show(contentPanel, "newTransaction");
+        bgPanel.add(contentPanel);
+
+        JButton loadBtn = new JButton("Load CSV");
+        loadBtn.setBounds(670, 20, 120, 30);
+        styleTextButton(loadBtn);
+        loadBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, " load (disabled for in-memory mode) "));
+        bgPanel.add(loadBtn);
+
+        JButton saveBtn = new JButton("Save CSV");
+        saveBtn.setBounds(780, 20, 120, 30);
+        styleTextButton(saveBtn);
+        saveBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, " save (disabled for in-memory mode) "));
+        bgPanel.add(saveBtn);
+
+        JButton aboutBtn = new JButton("About");
+        aboutBtn.setBounds(880, 20, 120, 30);
+        styleTextButton(aboutBtn);
+        aboutBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, " About "));
+        bgPanel.add(aboutBtn);
+
+        JButton newTransBtn = new JButton("New Transactions");
+        newTransBtn.setBounds(868, 150, 200, 35);
+        styleTextButton(newTransBtn);
+        newTransBtn.addActionListener(e -> cardLayout.show(contentPanel, "newTransaction"));
+        bgPanel.add(newTransBtn);
+
+        JButton transBtn = new JButton("Transactions");
+        transBtn.setBounds(868, 215, 200, 35);
+        styleTextButton(transBtn);
+        transBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "transactions");
+            refreshTransactionsTable();
+        });
+        bgPanel.add(transBtn);
+
+        JButton accountsBtn = new JButton("Accounts");
+        accountsBtn.setBounds(868, 280, 200, 35);
+        styleTextButton(accountsBtn);
+        accountsBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "accounts");
+            refreshAccountsTable();
+        });
+        bgPanel.add(accountsBtn);
+
+        JButton journalBtn = new JButton("General Journal");
+        journalBtn.setBounds(868, 345, 200, 35);
+        styleTextButton(journalBtn);
+        journalBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "generalJournal");
+            refreshJournalTable();
+        });
+        bgPanel.add(journalBtn);
+
+        JButton ledgerBtn = new JButton("General Ledger");
+        ledgerBtn.setBounds(868, 410, 200, 35);
+        styleTextButton(ledgerBtn);
+        ledgerBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "generalLedger");
+        });
+        bgPanel.add(ledgerBtn);
+
+        JButton balanceBtn = new JButton("Balance Sheet");
+        balanceBtn.setBounds(868, 475, 200, 35);
+        styleTextButton(balanceBtn);
+        balanceBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "balanceSheet");
+            refreshBalanceSheet();
+        });
+        bgPanel.add(balanceBtn);
+
+        frame.setContentPane(bgPanel);
+        frame.setVisible(true);
+    }
+
+    private void styleTextButton(JButton button) {
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setOpaque(false);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.BOLD, 16));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private class NewTransactionCard extends JPanel {
+        public NewTransactionCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+
+            JLabel formTitle = new JLabel("New Transactions", SwingConstants.CENTER);
+            formTitle.setFont(new Font("Poppins", Font.BOLD, 28));
+            formTitle.setBounds(0, 20, 840, 40);
+            add(formTitle);
+
+            String[] labels = {"Date (MM-DD-YYYY)", "Description", "Debit Account", "Credit Account", "Amount"};
+            int y = 80;
+            JTextField dateField = new JTextField();
+            JTextField descField = new JTextField();
+            JComboBox<String> debitDropdown = new JComboBox<>(getDebitAccounts());
+            JComboBox<String> creditDropdown = new JComboBox<>(getCreditAccounts());
+            JTextField amountField = new JTextField();
+
+            for (int i = 0; i < labels.length; i++) {
+                JLabel lbl = new JLabel(labels[i]);
+                lbl.setFont(new Font("Poppins", Font.PLAIN, 15));
+                lbl.setBounds(60, y, 180, 25);
+                add(lbl);
+
+                if (labels[i].equals("Debit Account")) {
+                    debitDropdown.setBounds(240, y, 400, 30);
+                    debitDropdown.setFont(new Font("Poppins", Font.PLAIN, 14));
+                    add(debitDropdown);
+                } else if (labels[i].equals("Credit Account")) {
+                    creditDropdown.setBounds(240, y, 400, 30);
+                    creditDropdown.setFont(new Font("Poppins", Font.PLAIN, 14));
+                    add(creditDropdown);
+                } else {
+                    JTextField field;
+                    if (labels[i].equals("Date (MM-DD-YYYY)")) field = dateField;
+                    else if (labels[i].equals("Description")) field = descField;
+                    else field = amountField;
+
+                    field.setBounds(240, y, 400, 30);
+                    field.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
+                    add(field);
+                }
+                y += 55;
+            }
+
+            JButton addBtn = new JButton("Add Transaction");
+            addBtn.setBounds(330, 380, 200, 40);
+            styleMainButton(addBtn);
+            add(addBtn);
+
+            addBtn.addActionListener(e -> {
+                String dateText = dateField.getText().trim();
+                String desc = descField.getText().trim();
+                String debitAcc = (String) debitDropdown.getSelectedItem();
+                String creditAcc = (String) creditDropdown.getSelectedItem();
+                String amountText = amountField.getText().trim();
+                if (dateText.isEmpty() || desc.isEmpty() || amountText.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Please fill all fields.", "Validation", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                inputDateFormat.setLenient(false);
+                try {
+                    inputDateFormat.parse(dateText);
+                } catch (ParseException ex) {
+                    JOptionPane.showMessageDialog(frame, "Date must be in MM-DD-YYYY format.", "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                double amount;
+                try {
+                    amount = Double.parseDouble(amountText.replace(",", ""));
+                    if (amount <= 0) throw new NumberFormatException();
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame, "Enter a valid positive number for amount.", "Invalid Amount", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                Transaction t = new Transaction(dateText, desc, debitAcc, creditAcc, amount);
+                transactions.add(t);
+
+                journalModel.addRow(new Object[]{dateText, desc, debitAcc, moneyFormat.format(amount), ""});
+                journalModel.addRow(new Object[]{dateText, desc, creditAcc, "", moneyFormat.format(amount)});
+
+                applyTransactionToBalances(t);
+
+                transactionsModel.addRow(new Object[]{dateText, desc, debitAcc, creditAcc, moneyFormat.format(amount)});
+
+                dateField.setText("");
+                descField.setText("");
+                amountField.setText("");
+
+                refreshAccountsTable();
+                refreshBalanceSheet();
+                JOptionPane.showMessageDialog(frame, "Transaction added.");
+            });
+        }
+    }
+
+    private class TransactionsCard extends JPanel {
+        public TransactionsCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+
+            JLabel title = new JLabel("Transactions", SwingConstants.CENTER);
+            title.setFont(new Font("Poppins", Font.BOLD, 28));
+            title.setBounds(0, 20, 840, 40);
+            add(title);
+
+            JLabel searchLabel = new JLabel("Search");
+            searchLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+            searchLabel.setBounds(130, 80, 50, 25);
+            add(searchLabel);
+
+            JTextField searchField = new JTextField();
+            searchField.setBounds(190, 80, 380, 30);
+            searchField.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
+            add(searchField);
+
+            JButton clearBtn = new JButton("X Clear");
+            clearBtn.setBounds(590, 80, 100, 30);
+            styleMainButton(clearBtn);
+            add(clearBtn);
+
+            JTable transactionTable = new JTable(transactionsModel);
+            transactionTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            transactionTable.setRowHeight(25);
+            transactionTable.setFillsViewportHeight(true);
+            transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header = transactionTable.getTableHeader();
+            header.setReorderingAllowed(false);
+            header.setResizingAllowed(false);
+
+            header.setFont(new Font("Poppins", Font.BOLD, 14));
+            header.setBackground(new Color(0, 64, 64));
+            header.setForeground(Color.WHITE);
+
+            transactionTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+            transactionTable.getColumnModel().getColumn(1).setPreferredWidth(175);
+            transactionTable.getColumnModel().getColumn(2).setPreferredWidth(175);
+            transactionTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+            transactionTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+
+            JScrollPane scrollPane = new JScrollPane(transactionTable);
+            scrollPane.setBounds(40, 130, 745, 330);
+            add(scrollPane);
+
+            searchField.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyReleased(KeyEvent e) {
+                    String q = searchField.getText().trim().toLowerCase();
+                    filterTransactions(q);
+                }
+            });
+
+            clearBtn.addActionListener(e -> {
+                searchField.setText("");
+                filterTransactions("");
+            });
+        }
+    }
+
+    private class AccountsCard extends JPanel {
+        public AccountsCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+            JLabel title = new JLabel("Accounts", SwingConstants.CENTER);
+            title.setFont(new Font("Poppins", Font.BOLD, 28));
+            title.setBounds(0, 20, 840, 40);
+            add(title);
+
+            JTable accountsTable = new JTable(accountsModel);
+            accountsTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            accountsTable.setRowHeight(25);
+            accountsTable.setFillsViewportHeight(true);
+            accountsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header = accountsTable.getTableHeader();
+            header.setReorderingAllowed(false);
+            header.setResizingAllowed(false);
+
+            header.setFont(new Font("Poppins", Font.BOLD, 14));
+            header.setBackground(new Color(0, 64, 64));
+            header.setForeground(Color.WHITE);
+
+            accountsTable.getColumnModel().getColumn(0).setPreferredWidth(250);
+            accountsTable.getColumnModel().getColumn(1).setPreferredWidth(250);
+            accountsTable.getColumnModel().getColumn(2).setPreferredWidth(250);
+
+            JScrollPane scrollPane = new JScrollPane(accountsTable);
+            scrollPane.setBounds(40, 80, 745, 380);
+            add(scrollPane);
+        }
+    }
+
+    private class GeneralJournalCard extends JPanel {
+        public GeneralJournalCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+            JLabel title = new JLabel("General Journal", SwingConstants.CENTER);
+            title.setFont(new Font("Poppins", Font.BOLD, 28));
+            title.setBounds(0, 20, 840, 40);
+            add(title);
+
+            JTable journalTable = new JTable(journalModel);
+            journalTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            journalTable.setRowHeight(25);
+            journalTable.setFillsViewportHeight(true);
+            journalTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header = journalTable.getTableHeader();
+            header.setReorderingAllowed(false);
+            header.setResizingAllowed(false);
+
+            header.setFont(new Font("Poppins", Font.BOLD, 14));
+            header.setBackground(new Color(0, 64, 64));
+            header.setForeground(Color.WHITE);
+
+            journalTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+            journalTable.getColumnModel().getColumn(1).setPreferredWidth(175);
+            journalTable.getColumnModel().getColumn(2).setPreferredWidth(175);
+            journalTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+            journalTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+
+            JScrollPane scrollPane = new JScrollPane(journalTable);
+            scrollPane.setBounds(40, 80, 745, 380);
+            add(scrollPane);
+        }
+    }
+
+    private class GeneralLedgerCard extends JPanel {
+        public GeneralLedgerCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+            JLabel title = new JLabel("General Ledger", SwingConstants.CENTER);
+            title.setFont(new Font("Poppins", Font.BOLD, 28));
+            title.setBounds(0, 20, 840, 40);
+            add(title);
+
+            JLabel searchLabel = new JLabel("Select Account");
+            searchLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+            searchLabel.setBounds(120, 80, 110, 25);
+            add(searchLabel);
+
+            JComboBox<String> allDropdown = new JComboBox<>(getAllAccounts());
+            allDropdown.setBounds(250, 80, 400, 30);
+            allDropdown.setFont(new Font("Poppins", Font.PLAIN, 14));
+            add(allDropdown);
+
+            JTable ledgerTable = new JTable(ledgerModel);
+            ledgerTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            ledgerTable.setRowHeight(25);
+            ledgerTable.setFillsViewportHeight(true);
+            ledgerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header = ledgerTable.getTableHeader();
+            header.setReorderingAllowed(false);
+            header.setResizingAllowed(false);
+
+            header.setFont(new Font("Poppins", Font.BOLD, 14));
+            header.setBackground(new Color(0, 64, 64));
+            header.setForeground(Color.WHITE);
+
+            ledgerTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+            ledgerTable.getColumnModel().getColumn(1).setPreferredWidth(130);
+            ledgerTable.getColumnModel().getColumn(2).setPreferredWidth(130);
+            ledgerTable.getColumnModel().getColumn(3).setPreferredWidth(130);
+            ledgerTable.getColumnModel().getColumn(4).setPreferredWidth(130);
+
+            JScrollPane scrollPane = new JScrollPane(ledgerTable);
+            scrollPane.setBounds(40, 130, 745, 330);
+            add(scrollPane);
+
+            allDropdown.addActionListener(e -> refreshLedgerForAccount((String) allDropdown.getSelectedItem()));
+            // initialize ledger with first account
+            if (allDropdown.getItemCount() > 0) {
+                refreshLedgerForAccount((String) allDropdown.getItemAt(0));
+            }
+        }
+    }
+
+    private class BalanceSheetCard extends JPanel {
+        public BalanceSheetCard() {
+            setLayout(null);
+            setBackground(Color.WHITE);
+            JLabel title = new JLabel("Balance Sheet", SwingConstants.CENTER);
+            title.setFont(new Font("Poppins", Font.BOLD, 28));
+            title.setBounds(0, 20, 840, 40);
+            add(title);
+
+            JLabel side = new JLabel("Assets");
+            side.setFont(new Font("Poppins", Font.BOLD, 21));
+            side.setBounds(180, 70, 400, 40);
+            add(side);
+
+            JLabel side1 = new JLabel("Liabilities and Equity");
+            side1.setFont(new Font("Poppins", Font.BOLD, 21));
+            side1.setBounds(500, 70, 400, 40);
+            add(side1);
+
+            JTable assetTable = new JTable(assetModel);
+            assetTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            assetTable.setRowHeight(25);
+            assetTable.setFillsViewportHeight(true);
+            assetTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header1 = assetTable.getTableHeader();
+            header1.setReorderingAllowed(false);
+            header1.setResizingAllowed(false);
+            header1.setFont(new Font("Poppins", Font.BOLD, 14));
+            header1.setBackground(new Color(0, 64, 64));
+            header1.setForeground(Color.WHITE);
+            assetTable.getColumnModel().getColumn(0).setPreferredWidth(150);
+            assetTable.getColumnModel().getColumn(1).setPreferredWidth(130);
+
+            JScrollPane scrollPane1 = new JScrollPane(assetTable);
+            scrollPane1.setBounds(40, 105, 350, 330);
+            add(scrollPane1);
+
+            JTable liabilityTable = new JTable(liabilityModel);
+            liabilityTable.setFont(new Font("Poppins", Font.PLAIN, 14));
+            liabilityTable.setRowHeight(25);
+            liabilityTable.setFillsViewportHeight(true);
+            liabilityTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JTableHeader header2 = liabilityTable.getTableHeader();
+            header2.setReorderingAllowed(false);
+            header2.setResizingAllowed(false);
+            header2.setFont(new Font("Poppins", Font.BOLD, 14));
+            header2.setBackground(new Color(0, 64, 64));
+            header2.setForeground(Color.WHITE);
+            liabilityTable.getColumnModel().getColumn(0).setPreferredWidth(180);
+            liabilityTable.getColumnModel().getColumn(1).setPreferredWidth(180);
+
+            JScrollPane scrollPane2 = new JScrollPane(liabilityTable);
+            scrollPane2.setBounds(420, 105, 370, 330);
+            add(scrollPane2);
+
+            JButton clearBtn = new JButton("Print");
+            clearBtn.setBounds(350, 450, 100, 30);
+            styleMainButton(clearBtn);
+            add(clearBtn);
+
+            clearBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, "Print not implemented in in-memory demo."));
+        }
+    }
+
+    private void filterTransactions(String query) {
+
+        transactionsModel.setRowCount(0);
+        for (Transaction t : transactions) {
+            if (query.isEmpty()
+                    || t.date.toLowerCase().contains(query)
+                    || t.description.toLowerCase().contains(query)
+                    || t.debitAccount.toLowerCase().contains(query)
+                    || t.creditAccount.toLowerCase().contains(query)) {
+                transactionsModel.addRow(new Object[]{t.date, t.description, t.debitAccount, t.creditAccount, moneyFormat.format(t.amount)});
+            }
+        }
+    }
+
+    private void refreshTransactionsTable() {
+        transactionsModel.setRowCount(0);
+        for (Transaction t : transactions) {
+            transactionsModel.addRow(new Object[]{t.date, t.description, t.debitAccount, t.creditAccount, moneyFormat.format(t.amount)});
+        }
+    }
+
+    private void refreshAccountsTable() {
+        accountsModel.setRowCount(0);
+        for (Map.Entry<String, Double> e : accountBalances.entrySet()) {
+            String account = e.getKey();
+            String type = parseCategory(account);
+            accountsModel.addRow(new Object[]{account, type, moneyFormat.format(e.getValue())});
+        }
+    }
+
+    private void refreshJournalTable() {
+n-memory mode
+    }
+
+    private void refreshLedgerForAccount(String account) {
+        ledgerModel.setRowCount(0);
+        double running = 0.0;
+        for (Transaction t : transactions) {
+            double debit = 0.0, credit = 0.0;
+            boolean involved = false;
+            if (t.debitAccount.equals(account)) {
+                debit = t.amount;
+                involved = true;
+            }
+            if (t.creditAccount.equals(account)) {
+                credit = t.amount;
+                involved = true;
+            }
+            if (involved) {
+                if (isNormalDebit(account)) {
+                    running += debit;
+                    running -= credit;
+                } else {
+                    running -= debit;
+                    running += credit;
+                }
+                ledgerModel.addRow(new Object[]{t.date, t.description,
+                        debit == 0.0 ? "" : moneyFormat.format(debit),
+                        credit == 0.0 ? "" : moneyFormat.format(credit),
+                        moneyFormat.format(running)});
+            }
+        }
+    }
+
+    private void refreshBalanceSheet() {
+        assetModel.setRowCount(0);
+        liabilityModel.setRowCount(0);
+
+        double totalAssets = 0.0;
+        double totalLiabilitiesEquity = 0.0;
+
+        for (Map.Entry<String, Double> e : accountBalances.entrySet()) {
+            String account = e.getKey();
+            double bal = e.getValue();
+            String cat = parseCategory(account);
+            if (cat.equalsIgnoreCase("ASSETS")) {
+                assetModel.addRow(new Object[]{account, moneyFormat.format(bal)});
+                totalAssets += bal;
+            } else if (cat.equalsIgnoreCase("LIABILITIES") || cat.toUpperCase().contains("OWNER") || cat.equalsIgnoreCase("REVENUE")) {
+                liabilityModel.addRow(new Object[]{account, moneyFormat.format(bal)});
+                totalLiabilitiesEquity += bal;
+            } else if (cat.equalsIgnoreCase("EXPENSES")) {
+                // Expenses reduce equity; show them as negative under liabilities/equity for clarity
+                liabilityModel.addRow(new Object[]{account, "(" + moneyFormat.format(bal) + ")"});
+                totalLiabilitiesEquity -= bal;
+            } else {
+                // Fallback: show in liabilities/equity column
+                liabilityModel.addRow(new Object[]{account, moneyFormat.format(bal)});
+                totalLiabilitiesEquity += bal;
+            }
+        }
+
+        assetModel.addRow(new Object[]{"Total Assets", moneyFormat.format(totalAssets)});
+        liabilityModel.addRow(new Object[]{"Total Liabilities & Equity", moneyFormat.format(totalLiabilitiesEquity)});
+    }
+
+    private void applyTransactionToBalances(Transaction t) {
+
+        boolean debitNormalDebit = isNormalDebit(t.debitAccount);
+        double prevDebitBal = accountBalances.getOrDefault(t.debitAccount, 0.0);
+        double newDebitBal = prevDebitBal + (debitNormalDebit ? t.amount : -t.amount);
+        accountBalances.put(t.debitAccount, newDebitBal);
+
+        boolean creditNormalDebit = isNormalDebit(t.creditAccount);
+        double prevCreditBal = accountBalances.getOrDefault(t.creditAccount, 0.0);
+        double newCreditBal = prevCreditBal + (creditNormalDebit ? -t.amount : t.amount);
+        accountBalances.put(t.creditAccount, newCreditBal);
+    }
+
+    private boolean isNormalDebit(String account) {
+        String cat = parseCategory(account).toUpperCase();
+
+        return cat.contains("ASSETS") || cat.contains("EXPENSE");
+    }
+
+    private String parseCategory(String account) {
+        if (account == null) return "";
+        int open = account.lastIndexOf('(');
+        int close = account.lastIndexOf(')');
+        if (open >= 0 && close > open) {
+            return account.substring(open + 1, close).trim();
+        }
+        return "";
+    }
+
+    private String[] getDebitAccounts() {
+        return new String[]{
+                "Cash – (ASSETS)",
+                "Accounts Receivable – (ASSETS)",
+                "Supplies – (ASSETS)",
+                "Equipment – (ASSETS)",
+                "Inventory – (ASSETS)",
+                "Land – (ASSETS)",
+                "Building – (ASSETS)",
+                "Prepaid Expenses – (ASSETS)",
+                "Rent Expense – (EXPENSES)",
+                "Salaries Expense – (EXPENSES)",
+                "Utilities Expense – (EXPENSES)",
+                "Advertising Expense – (EXPENSES)",
+                "Supplies Expense – (EXPENSES)",
+                "Depreciation Expense – (EXPENSES)",
+                "Owner’s Drawings – (OWNER’S EQUITY)"
+        };
+    }
+
+    private String[] getCreditAccounts() {
+        return new String[]{
+                "Accounts Payable – (LIABILITIES)",
+                "Notes Payable – (LIABILITIES)",
+                "Salaries Payable – (LIABILITIES)",
+                "Taxes Payable – (LIABILITIES)",
+                "Unearned Revenue – (LIABILITIES)",
+                "Owner’s Capital – (OWNER’S EQUITY)",
+                "Service Revenue – (REVENUE)",
+                "Sales Revenue – (REVENUE)",
+                "Interest Income – (REVENUE)",
+                "Fees Earned – (REVENUE)"
+        };
+    }
+
+    private String[] getAllAccounts() {
+        return new String[]{
+                "Cash – (ASSETS)",
+                "Accounts Receivable – (ASSETS)",
+                "Supplies – (ASSETS)",
+                "Equipment – (ASSETS)",
+                "Inventory – (ASSETS)",
+                "Land – (ASSETS)",
+                "Building – (ASSETS)",
+                "Prepaid Expenses – (ASSETS)",
+                "Rent Expense – (EXPENSES)",
+                "Salaries Expense – (EXPENSES)",
+                "Utilities Expense – (EXPENSES)",
+                "Advertising Expense – (EXPENSES)",
+                "Supplies Expense – (EXPENSES)",
+                "Depreciation Expense – (EXPENSES)",
+                "Owner’s Drawings – (OWNER’S EQUITY)",
+                "Accounts Payable – (LIABILITIES)",
+                "Notes Payable – (LIABILITIES)",
+                "Salaries Payable – (LIABILITIES)",
+                "Taxes Payable – (LIABILITIES)",
+                "Unearned Revenue – (LIABILITIES)",
+                "Owner’s Capital – (OWNER’S EQUITY)",
+                "Service Revenue – (REVENUE)",
+                "Sales Revenue – (REVENUE)",
+                "Interest Income – (REVENUE)",
+                "Fees Earned – (REVENUE)"
+        };
+    }
+
+    private void styleSmallButton(JButton button) {
+        button.setBackground(new Color(40, 40, 40));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.BOLD, 12));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+    }
+
+    private void styleMainButton(JButton button) {
+        button.setBackground(new Color(40, 40, 40));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.BOLD, 15));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+    }
+
+    private void styleMenuButton(JButton button) {
+        button.setBackground(new Color(40, 40, 40));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.PLAIN, 14));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(NewTransaction::new);
+    }
+
+    class CircularImagePanel extends JPanel {
+        private final Image image;
+
+        public CircularImagePanel(String imagePath, int diameter) {
+            ImageIcon icon = new ImageIcon(imagePath);
+            this.image = icon.getImage().getScaledInstance(diameter, diameter, Image.SCALE_SMOOTH);
+            setPreferredSize(new Dimension(diameter, diameter));
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Shape circle = new Ellipse2D.Double(0, 0, getWidth(), getHeight());
+            g2.setClip(circle);
+            g2.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+            g2.setClip(null);
+            g2.setStroke(new BasicStroke(2f));
+            g2.setColor(Color.LIGHT_GRAY);
+            g2.draw(circle);
+
+            g2.dispose();
+        }
+    }
+
+    static class Transaction {
+        String date;
+        String description;
+        String debitAccount;
+        String creditAccount;
+        double amount;
+
+        public Transaction(String date, String description, String debitAccount, String creditAccount, double amount) {
+            this.date = date;
+            this.description = description;
+            this.debitAccount = debitAccount;
+            this.creditAccount = creditAccount;
+            this.amount = amount;
+        }
+    }
+}
+
