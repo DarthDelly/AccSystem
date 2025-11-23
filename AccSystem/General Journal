@@ -72,7 +72,6 @@ public class GeneralJournal extends JFrame {
     }
 
     public static void main(String[] args) {
-        // Sample journal entries for testing
 
         SwingUtilities.invokeLater(GeneralJournal::new);
     }
@@ -99,7 +98,8 @@ public class NewTransaction {
     private CardLayout cardLayout;
 
     private final List<Transaction> transactions = new ArrayList<>();
-    private final Map<String, Double> accountBalances = new LinkedHashMap<>();
+    private final Map<String, Double> accountBalances = new LinkedHashMap<>(); 
+
     private final DefaultTableModel transactionsModel;
     private final DefaultTableModel accountsModel;
     private final DefaultTableModel journalModel;
@@ -111,6 +111,7 @@ public class NewTransaction {
     private final SimpleDateFormat inputDateFormat = new SimpleDateFormat("MM-dd-yyyy");
 
     public NewTransaction() {
+
         transactionsModel = new DefaultTableModel(new String[]{"Date", "Description", "Debit Account", "Credit Account", "Amount"}, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -133,6 +134,7 @@ public class NewTransaction {
         for (String acc : getAllAccounts()) {
             accountBalances.put(acc, 0.0);
         }
+
         frame = new JFrame("Accounting System ");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1100, 650);
@@ -143,7 +145,7 @@ public class NewTransaction {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon bg = new ImageIcon("c:\\Users\\ASUS\\Documents\\ImageFile\\pic2.png"););
+                ImageIcon bg = new ImageIcon("c:\\Users\\ASUS\\Documents\\ImageFile\\pic2.png");
                 g.drawImage(bg.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -187,9 +189,11 @@ public class NewTransaction {
 
         logoutBtn.addActionListener(e -> {
             frame.dispose();
+
             try {
                 new LOGIN();
             } catch (Throwable t) {
+
             }
         });
         bgPanel.add(adminPanel);
@@ -292,6 +296,7 @@ public class NewTransaction {
         styleTextButton(ledgerBtn);
         ledgerBtn.addActionListener(e -> {
             cardLayout.show(contentPanel, "generalLedger");
+
         });
         bgPanel.add(ledgerBtn);
 
@@ -330,6 +335,7 @@ public class NewTransaction {
 
             String[] labels = {"Date (MM-DD-YYYY)", "Description", "Debit Account", "Credit Account", "Amount"};
             int y = 80;
+
             JTextField dateField = new JTextField();
             JTextField descField = new JTextField();
             JComboBox<String> debitDropdown = new JComboBox<>(getDebitAccounts());
@@ -374,6 +380,7 @@ public class NewTransaction {
                 String debitAcc = (String) debitDropdown.getSelectedItem();
                 String creditAcc = (String) creditDropdown.getSelectedItem();
                 String amountText = amountField.getText().trim();
+
                 if (dateText.isEmpty() || desc.isEmpty() || amountText.isEmpty()) {
                     JOptionPane.showMessageDialog(frame, "Please fill all fields.", "Validation", JOptionPane.WARNING_MESSAGE);
                     return;
@@ -400,6 +407,7 @@ public class NewTransaction {
                 transactions.add(t);
 
                 journalModel.addRow(new Object[]{dateText, desc, debitAcc, moneyFormat.format(amount), ""});
+
                 journalModel.addRow(new Object[]{dateText, desc, creditAcc, "", moneyFormat.format(amount)});
 
                 applyTransactionToBalances(t);
@@ -592,8 +600,8 @@ public class NewTransaction {
             scrollPane.setBounds(40, 130, 745, 330);
             add(scrollPane);
 
+
             allDropdown.addActionListener(e -> refreshLedgerForAccount((String) allDropdown.getSelectedItem()));
-            // initialize ledger with first account
             if (allDropdown.getItemCount() > 0) {
                 refreshLedgerForAccount((String) allDropdown.getItemAt(0));
             }
@@ -666,6 +674,8 @@ public class NewTransaction {
         }
     }
 
+
+
     private void filterTransactions(String query) {
 
         transactionsModel.setRowCount(0);
@@ -697,12 +707,13 @@ public class NewTransaction {
     }
 
     private void refreshJournalTable() {
-n-memory mode
+
     }
 
     private void refreshLedgerForAccount(String account) {
         ledgerModel.setRowCount(0);
         double running = 0.0;
+
         for (Transaction t : transactions) {
             double debit = 0.0, credit = 0.0;
             boolean involved = false;
@@ -715,6 +726,7 @@ n-memory mode
                 involved = true;
             }
             if (involved) {
+
                 if (isNormalDebit(account)) {
                     running += debit;
                     running -= credit;
@@ -748,16 +760,17 @@ n-memory mode
                 liabilityModel.addRow(new Object[]{account, moneyFormat.format(bal)});
                 totalLiabilitiesEquity += bal;
             } else if (cat.equalsIgnoreCase("EXPENSES")) {
-                // Expenses reduce equity; show them as negative under liabilities/equity for clarity
+              
                 liabilityModel.addRow(new Object[]{account, "(" + moneyFormat.format(bal) + ")"});
                 totalLiabilitiesEquity -= bal;
             } else {
-                // Fallback: show in liabilities/equity column
+ 
                 liabilityModel.addRow(new Object[]{account, moneyFormat.format(bal)});
                 totalLiabilitiesEquity += bal;
             }
         }
 
+    
         assetModel.addRow(new Object[]{"Total Assets", moneyFormat.format(totalAssets)});
         liabilityModel.addRow(new Object[]{"Total Liabilities & Equity", moneyFormat.format(totalLiabilitiesEquity)});
     }
@@ -768,6 +781,7 @@ n-memory mode
         double prevDebitBal = accountBalances.getOrDefault(t.debitAccount, 0.0);
         double newDebitBal = prevDebitBal + (debitNormalDebit ? t.amount : -t.amount);
         accountBalances.put(t.debitAccount, newDebitBal);
+
 
         boolean creditNormalDebit = isNormalDebit(t.creditAccount);
         double prevCreditBal = accountBalances.getOrDefault(t.creditAccount, 0.0);
@@ -793,66 +807,68 @@ n-memory mode
 
     private String[] getDebitAccounts() {
         return new String[]{
-                "Cash – (ASSETS)",
-                "Accounts Receivable – (ASSETS)",
-                "Supplies – (ASSETS)",
-                "Equipment – (ASSETS)",
-                "Inventory – (ASSETS)",
-                "Land – (ASSETS)",
-                "Building – (ASSETS)",
-                "Prepaid Expenses – (ASSETS)",
-                "Rent Expense – (EXPENSES)",
-                "Salaries Expense – (EXPENSES)",
-                "Utilities Expense – (EXPENSES)",
-                "Advertising Expense – (EXPENSES)",
-                "Supplies Expense – (EXPENSES)",
-                "Depreciation Expense – (EXPENSES)",
-                "Owner’s Drawings – (OWNER’S EQUITY)"
+                "Cash - (ASSETS)",
+                "Accounts Receivable - (ASSETS)",
+                "Supplies - (ASSETS)",
+                "Equipment - (ASSETS)",
+                "Inventory - (ASSETS)",
+                "Land - (ASSETS)",
+                "Building - (ASSETS)",
+                "Prepaid Expenses - (ASSETS)",
+                "Rent Expense - (EXPENSES)",
+                "Salaries Expense - (EXPENSES)",
+                "Utilities Expense - (EXPENSES)",
+                "Advertising Expense - (EXPENSES)",
+                "Supplies Expense - (EXPENSES)",
+                "Depreciation Expense - (EXPENSES)",
+                "Owner's Drawings - (OWNER'S EQUITY)"
         };
     }
 
+
+
     private String[] getCreditAccounts() {
         return new String[]{
-                "Accounts Payable – (LIABILITIES)",
-                "Notes Payable – (LIABILITIES)",
-                "Salaries Payable – (LIABILITIES)",
-                "Taxes Payable – (LIABILITIES)",
-                "Unearned Revenue – (LIABILITIES)",
-                "Owner’s Capital – (OWNER’S EQUITY)",
-                "Service Revenue – (REVENUE)",
-                "Sales Revenue – (REVENUE)",
-                "Interest Income – (REVENUE)",
-                "Fees Earned – (REVENUE)"
+                "Accounts Payable - (LIABILITIES)",
+                "Notes Payable - (LIABILITIES)",
+                "Salaries Payable - (LIABILITIES)",
+                "Taxes Payable - (LIABILITIES)",
+                "Unearned Revenue - (LIABILITIES)",
+                "Owner's Capital - (OWNER'S EQUITY)",
+                "Service Revenue - (REVENUE)",
+                "Sales Revenue - (REVENUE)",
+                "Interest Income - (REVENUE)",
+                "Fees Earned - (REVENUE)"
         };
     }
 
     private String[] getAllAccounts() {
         return new String[]{
-                "Cash – (ASSETS)",
-                "Accounts Receivable – (ASSETS)",
-                "Supplies – (ASSETS)",
-                "Equipment – (ASSETS)",
-                "Inventory – (ASSETS)",
-                "Land – (ASSETS)",
-                "Building – (ASSETS)",
-                "Prepaid Expenses – (ASSETS)",
-                "Rent Expense – (EXPENSES)",
-                "Salaries Expense – (EXPENSES)",
-                "Utilities Expense – (EXPENSES)",
-                "Advertising Expense – (EXPENSES)",
-                "Supplies Expense – (EXPENSES)",
-                "Depreciation Expense – (EXPENSES)",
-                "Owner’s Drawings – (OWNER’S EQUITY)",
-                "Accounts Payable – (LIABILITIES)",
-                "Notes Payable – (LIABILITIES)",
-                "Salaries Payable – (LIABILITIES)",
-                "Taxes Payable – (LIABILITIES)",
-                "Unearned Revenue – (LIABILITIES)",
-                "Owner’s Capital – (OWNER’S EQUITY)",
-                "Service Revenue – (REVENUE)",
-                "Sales Revenue – (REVENUE)",
-                "Interest Income – (REVENUE)",
-                "Fees Earned – (REVENUE)"
+                "Cash - (ASSETS)",
+                "Accounts Receivable - (ASSETS)",
+                "Supplies - (ASSETS)",
+                "Equipment - (ASSETS)",
+                "Inventory - (ASSETS)",
+                "Land - (ASSETS)",
+                "Building - (ASSETS)",
+                "Prepaid Expenses - (ASSETS)",
+                "Rent Expense - (EXPENSES)",
+                "Salaries Expense - (EXPENSES)",
+                "Utilities Expense - (EXPENSES)",
+                "Advertising Expense - (EXPENSES)",
+                "Supplies Expense - (EXPENSES)",
+                "Depreciation Expense - (EXPENSES)",
+                "Owner's Drawings - (OWNER'S EQUITY)",
+                "Accounts Payable - (LIABILITIES)",
+                "Notes Payable - (LIABILITIES)",
+                "Salaries Payable - (LIABILITIES)",
+                "Taxes Payable - (LIABILITIES)",
+                "Unearned Revenue - (LIABILITIES)",
+                "Owner's Capital - (OWNER'S EQUITY)",
+                "Service Revenue - (REVENUE)",
+                "Sales Revenue - (REVENUE)",
+                "Interest Income - (REVENUE)",
+                "Fees Earned - (REVENUE)"
         };
     }
 
@@ -934,6 +950,9 @@ n-memory mode
             this.creditAccount = creditAccount;
             this.amount = amount;
         }
+    }
+}
+
     }
 }
 
