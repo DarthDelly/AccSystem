@@ -99,7 +99,7 @@ public class NewTransaction {
     private CardLayout cardLayout;
 
     private final List<Transaction> transactions = new ArrayList<>();
-    private final Map<String, Double> accountBalances = new LinkedHashMap<>(); // preserve order
+    private final Map<String, Double> accountBalances = new LinkedHashMap<>();
     private final DefaultTableModel transactionsModel;
     private final DefaultTableModel accountsModel;
     private final DefaultTableModel journalModel;
@@ -143,7 +143,7 @@ public class NewTransaction {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon bg = new ImageIcon("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\pic2.png");
+                ImageIcon bg = new ImageIcon("c:\\Users\\ASUS\\Documents\\ImageFile\\pic2.png"););
                 g.drawImage(bg.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -164,7 +164,7 @@ public class NewTransaction {
         adminPanel.addMouseListener(new MouseAdapter() {});
         adminPanel.addMouseMotionListener(new MouseMotionAdapter() {});
 
-        CircularImagePanel adminImage = new CircularImagePanel("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\icon1.jpg", 100);
+        CircularImagePanel adminImage = new CircularImagePanel("c:\\Users\\ASUS\\Documents\\ImageFile\\icon1.jpg", 100);
         adminImage.setBounds(125, 140, 100, 100);
         adminPanel.add(adminImage);
 
@@ -194,7 +194,7 @@ public class NewTransaction {
         });
         bgPanel.add(adminPanel);
 
-        ImageIcon adminIcon = new ImageIcon("C:\\Users\\John\\Documents\\AccSystem-main\\AccSystem-main\\AccSystem\\images\\pic3.png");
+        ImageIcon adminIcon = new ImageIcon("c:\\Users\\ASUS\\Documents\\ImageFile\\pic3.png");
         Image scaledAdminIcon = adminIcon.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH);
 
         JButton adminBtn = new JButton(new ImageIcon(scaledAdminIcon));
