@@ -475,10 +475,10 @@ private class TransactionsCard extends JPanel {
         }
     }
 
-    private class GeneralJournalCard extends JPanel 
-    {
-        public GeneralJournalCard() 
-        {
+        private class GeneralJournalCard extends JPanel {
+        private DefaultTableModel model;
+
+        public GeneralJournalCard() {
             setLayout(null);
             setBackground(Color.WHITE);
             JLabel title = new JLabel("General Journal", SwingConstants.CENTER);
@@ -486,41 +486,64 @@ private class TransactionsCard extends JPanel {
             title.setBounds(0, 20, 840, 40);
             add(title);
 
+            String[] columnNames = {"Date", "Description", "Debit Account", "Credit Account", "Amount"};
+            model = new DefaultTableModel(columnNames, 0);
+            JTable table = new JTable(model);
+            table.setFont(new Font("Poppins", Font.PLAIN, 14));
+            table.setRowHeight(25);
 
-  String[] columnNames = {"Date","Description","Account", "Balance"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; 
+            JTableHeader header = table.getTableHeader();
+            header.setFont(new Font("Poppins", Font.BOLD, 14));
+            header.setBackground(new Color(0, 64, 64));
+            header.setForeground(Color.WHITE);
+
+            JScrollPane scrollPane = new JScrollPane(table);
+            scrollPane.setBounds(40, 80, 745, 380);
+            add(scrollPane);
+        }
+
+        // 🔹 Update/Refresh table when new transaction is added
+        public void refreshTable() {
+            model.setRowCount(0); // clear table
+            for (JournalEntry e : journalEntries) {
+                model.addRow(new Object[]{e.date, e.description, e.debitAccount, e.creditAccount, e.amount});
             }
-        };
-
-        JTable transactionTable = new JTable(model);
-        transactionTable.setFont(new Font("Poppins", Font.PLAIN, 14));
-        transactionTable.setRowHeight(25);
-        transactionTable.setFillsViewportHeight(true);
-        transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        JTableHeader header = transactionTable.getTableHeader();
-        header.setReorderingAllowed(false);   
-        header.setResizingAllowed(false);     
-
-        header.setFont(new Font("Poppins", Font.BOLD, 14));
-        header.setBackground(new Color(0, 64, 64)); 
-        header.setForeground(Color.WHITE);
-
-        
-        transactionTable.getColumnModel().getColumn(0).setPreferredWidth(150); 
-        transactionTable.getColumnModel().getColumn(1).setPreferredWidth(230); 
-        transactionTable.getColumnModel().getColumn(2).setPreferredWidth(185); 
-        transactionTable.getColumnModel().getColumn(3).setPreferredWidth(185); 
-   
-
-        JScrollPane scrollPane = new JScrollPane(transactionTable);
-        scrollPane.setBounds(40, 80, 745, 380);
-        add(scrollPane);
         }
     }
+
+    // === Dummy Cards to Avoid Errors ===
+    private class TransactionsCard extends JPanel { public TransactionsCard() { setBackground(Color.LIGHT_GRAY); } }
+    private class AccountsCard extends JPanel { public AccountsCard() { setBackground(Color.LIGHT_GRAY); } }
+    private class GeneralLedgerCard extends JPanel { public GeneralLedgerCard() { setBackground(Color.LIGHT_GRAY); } }
+    private class BalanceSheetCard extends JPanel { public BalanceSheetCard() { setBackground(Color.LIGHT_GRAY); } }
+
+    private String[] getDebitAccounts() {
+        return new String[]{"Cash", "Supplies", "Equipment", "Rent Expense"};
+    }
+
+    private String[] getCreditAccounts() {
+        return new String[]{"Accounts Payable", "Owner’s Capital", "Service Revenue"};
+    }
+
+    private void styleTextButton(JButton button) {
+        button.setContentAreaFilled(false);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.BOLD, 16));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void styleMainButton(JButton button) {
+        button.setBackground(new Color(40, 40, 40));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Poppins", Font.BOLD, 15));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(NewTransaction::new);
+    }
+}
 
     private class GeneralLedgerCard extends JPanel 
     {
