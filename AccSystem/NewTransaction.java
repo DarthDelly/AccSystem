@@ -4,6 +4,14 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
+import java.io.File;
+import java.nio.file.Files;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 
 public class NewTransaction {
     private final JFrame frame;
@@ -24,7 +32,8 @@ public class NewTransaction {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon bg = new ImageIcon("C:\\Java\\ACCTG\\IMG\\pic2.png");
+                String imges = "AccSystem" + File.separator + "images" + File.separator + "pic2.png";
+                ImageIcon bg = new ImageIcon(imges);
                 g.drawImage(bg.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -45,7 +54,8 @@ public class NewTransaction {
         adminPanel.addMouseListener(new MouseAdapter() {});
         adminPanel.addMouseMotionListener(new MouseMotionAdapter() {});
 
-        CircularImagePanel adminImage = new CircularImagePanel("C:\\Java\\ACCTG\\IMG\\icon1.jpg", 100);
+        String imges1 = "AccSystem" + File.separator + "images" + File.separator + "icon1.jpg";
+        CircularImagePanel adminImage = new CircularImagePanel(imges1, 100);
         adminImage.setBounds(125, 140, 100, 100);
         adminPanel.add(adminImage);
 
@@ -70,9 +80,11 @@ public class NewTransaction {
             frame.dispose();
             new LOGIN();
         });
+
 bgPanel.add(adminPanel);
 
-ImageIcon adminIcon = new ImageIcon("C:\\Java\\ACCTG\\IMG\\pic3.png"); 
+String imges2 = "AccSystem" + File.separator + "images" + File.separator + "pic3.png";
+ImageIcon adminIcon = new ImageIcon(imges2); 
 Image scaledAdminIcon = adminIcon.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH);
 
 JButton adminBtn = new JButton(new ImageIcon(scaledAdminIcon));
@@ -116,10 +128,44 @@ adminBtn.addActionListener(e -> {
 
 
         JButton loadBtn = new JButton("Load CSV");
-        loadBtn.setBounds(670, 20, 120, 30);
-        styleTextButton(loadBtn); 
-        loadBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, " load "));
-        bgPanel.add(loadBtn);
+    loadBtn.addActionListener(e -> {
+    String accountName = LOGIN.loggedInUser; 
+    JTable loadedTable = TransactionFolder.loadCSV(accountName);
+    DefaultTableModel loadedModel = (DefaultTableModel) loadedTable.getModel();
+
+    if (loadedModel.getRowCount() == 0) {
+        JOptionPane.showMessageDialog(frame, "No transactions found!");
+        return;
+    }
+
+    List<String[]> transactions = new ArrayList<>();
+    for (int i = 0; i < loadedModel.getRowCount(); i++) {
+        String[] row = new String[5];
+        for (int j = 0; j < 5; j++) {
+            row[j] = loadedModel.getValueAt(i, j).toString();
+        }
+        transactions.add(row);
+    }
+
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+    transactions.sort(Comparator.comparing(t -> LocalDate.parse(t[0], formatter)));
+
+    JPanel panel = new JPanel();
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+    for (String[] t : transactions) {
+        String displayText = t[0] + " | " + t[1] + " | " + t[2] + " -> " + t[3] + " | " + t[4];
+        JButton rowBtn = new JButton(displayText);
+        rowBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rowBtn.addActionListener(ev -> JOptionPane.showMessageDialog(frame, "Transaction selected:\n" + displayText));
+        panel.add(rowBtn);
+    }
+
+    JScrollPane scrollPane = new JScrollPane(panel);
+    scrollPane.setPreferredSize(new Dimension(700, 300));
+
+    JOptionPane.showMessageDialog(frame, scrollPane, "Transactions", JOptionPane.PLAIN_MESSAGE);
+});
 
         JButton saveBtn = new JButton("Save CSV");
         saveBtn.setBounds(780, 20, 120, 30);
@@ -130,7 +176,31 @@ adminBtn.addActionListener(e -> {
         JButton aboutBtn = new JButton("About");
         aboutBtn.setBounds(880, 20, 120, 30);
         styleTextButton(aboutBtn);
-        aboutBtn.addActionListener(e -> JOptionPane.showMessageDialog(frame, " About "));
+        aboutBtn.addActionListener(e -> {
+
+    JFrame aboutFrame = new JFrame("About");
+    aboutFrame.setSize(400, 150);        
+    aboutFrame.setLocationRelativeTo(frame); 
+    aboutFrame.setLayout(new BorderLayout());
+
+    JTextArea textArea = new JTextArea();
+    textArea.setEditable(false);
+    textArea.setLineWrap(true);
+    textArea.setWrapStyleWord(true);
+
+    textArea.setText(
+        "This Accounting System helps users record, organize, and manage\n"
+      + "financial transactions. It allows account creation, transaction\n"
+      + "tracking, and secure data storage to support accurate and\n"
+      + "efficient bookkeeping."
+    );
+
+    JScrollPane scrollPane = new JScrollPane(textArea);
+
+    aboutFrame.add(scrollPane, BorderLayout.CENTER);
+
+    aboutFrame.setVisible(true);
+});
         bgPanel.add(aboutBtn);
 
 
@@ -186,53 +256,121 @@ private void styleTextButton(JButton button) {
 
 
 
+private class NewTransactionCard extends JPanel {
+private JComboBox<Integer> dayDropdown;
+private JComboBox<String> monthDropdown;
+private JComboBox<Integer> yearDropdown;
+private JTextField descriptionField;
+private JComboBox<String> debitDropdown;
+private JComboBox<String> creditDropdown;
+private JTextField amountField;
+private JTable previewTable;
+private DefaultTableModel tableModel;
+private final String accountName = LOGIN.loggedInUser;
 
+public NewTransactionCard() {
+    setLayout(null);
+    setBackground(Color.WHITE);
 
+    JLabel formTitle = new JLabel("New Transactions", SwingConstants.CENTER);
+    formTitle.setFont(new Font("Poppins", Font.BOLD, 28));
+    formTitle.setBounds(0, 20, 840, 40);
+    add(formTitle);
 
+    JLabel dateLabel = new JLabel("Date (MM-DD-YYYY)");
+    dateLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+    dateLabel.setBounds(60, 80, 180, 25);
+    add(dateLabel);
 
-    private class NewTransactionCard extends JPanel {
-        public NewTransactionCard() {
-            setLayout(null);
-            setBackground(Color.WHITE);
+    monthDropdown = new JComboBox<>(new String[]{
+            "01","02","03","04","05","06","07","08","09","10","11","12"});
+    monthDropdown.setBounds(240, 80, 80, 30);
+    add(monthDropdown);
 
-            JLabel formTitle = new JLabel("New Transactions", SwingConstants.CENTER);
-            formTitle.setFont(new Font("Poppins", Font.BOLD, 28));
-            formTitle.setBounds(0, 20, 840, 40);
-            add(formTitle);
+    dayDropdown = new JComboBox<>();
+    for (int i = 1; i <= 31; i++) dayDropdown.addItem(i);
+    dayDropdown.setBounds(330, 80, 60, 30);
+    add(dayDropdown);
 
-            String[] labels = {"Date (MM-DD-YYYY)", "Description", "Debit Account", "Credit Account", "Amount"};
-            int y = 80;
-            for (int i = 0; i < labels.length; i++) {
-                JLabel lbl = new JLabel(labels[i]);
-                lbl.setFont(new Font("Poppins", Font.PLAIN, 15));
-                lbl.setBounds(60, y, 180, 25);
-                add(lbl);
+    yearDropdown = new JComboBox<>();
+    for (int i = 2020; i <= 2030; i++) yearDropdown.addItem(i);
+    yearDropdown.setBounds(400, 80, 80, 30);
+    add(yearDropdown);
 
-                if (labels[i].equals("Debit Account")) {
-                    JComboBox<String> debitDropdown = new JComboBox<>(getDebitAccounts());
-                    debitDropdown.setBounds(240, y, 400, 30);
-                    debitDropdown.setFont(new Font("Poppins", Font.PLAIN, 14));
-                    add(debitDropdown);
-                } else if (labels[i].equals("Credit Account")) {
-                    JComboBox<String> creditDropdown = new JComboBox<>(getCreditAccounts());
-                    creditDropdown.setBounds(240, y, 400, 30);
-                    creditDropdown.setFont(new Font("Poppins", Font.PLAIN, 14));
-                    add(creditDropdown);
-                } else {
-                    JTextField field = new JTextField();
-                    field.setBounds(240, y, 400, 30);
-                    field.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
-                    add(field);
-                }
-                y += 55;
-            }
+    JLabel descLabel = new JLabel("Description");
+    descLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+    descLabel.setBounds(60, 130, 180, 25);
+    add(descLabel);
 
-            JButton addBtn = new JButton("Add Transaction");
-            addBtn.setBounds(330, 380, 200, 40);
-            styleMainButton(addBtn);
-            add(addBtn);
-        }
+    descriptionField = new JTextField();
+    descriptionField.setBounds(240, 130, 400, 30);
+    add(descriptionField);
+
+    JLabel debitLabel = new JLabel("Debit Account");
+    debitLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+    debitLabel.setBounds(60, 180, 180, 25);
+    add(debitLabel);
+
+    debitDropdown = new JComboBox<>(getDebitAccounts());
+    debitDropdown.setBounds(240, 180, 400, 30);
+    add(debitDropdown);
+
+    JLabel creditLabel = new JLabel("Credit Account");
+    creditLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+    creditLabel.setBounds(60, 230, 180, 25);
+    add(creditLabel);
+
+    creditDropdown = new JComboBox<>(getCreditAccounts());
+    creditDropdown.setBounds(240, 230, 400, 30);
+    add(creditDropdown);
+
+    JLabel amountLabel = new JLabel("Amount");
+    amountLabel.setFont(new Font("Poppins", Font.PLAIN, 15));
+    amountLabel.setBounds(60, 280, 180, 25);
+    add(amountLabel);
+
+    amountField = new JTextField();
+    amountField.setBounds(240, 280, 400, 30);
+    add(amountField);
+
+    JButton addBtn = new JButton("Add Transaction");
+    addBtn.setBounds(330, 330, 200, 40);
+    styleMainButton(addBtn);
+    add(addBtn);
+
+    String[] columns = {"Date", "Description", "Debit", "Credit", "Amount"};
+    tableModel = new DefaultTableModel(columns, 0);
+    previewTable = new JTable(tableModel);
+    JScrollPane scrollPane = new JScrollPane(previewTable);
+    scrollPane.setBounds(40, 380, 745, 120);
+    add(scrollPane);
+
+    TransactionFolder.createAccountFolder(accountName);
+
+    addBtn.addActionListener(e -> {
+    String date = monthDropdown.getSelectedItem() + "-" +
+                  dayDropdown.getSelectedItem() + "-" +
+                  yearDropdown.getSelectedItem();
+    String description = descriptionField.getText();
+    String debit = (String) debitDropdown.getSelectedItem();
+    String credit = (String) creditDropdown.getSelectedItem();
+    String amount = amountField.getText();
+
+    if (description.isEmpty() || amount.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Description and Amount cannot be empty");
+        return;
     }
+
+    TransactionFolder.addTransaction(date, description, debit, credit, amount, accountName); 
+    tableModel.addRow(new Object[]{date, description, debit, credit, amount});
+
+    descriptionField.setText("");
+    amountField.setText("");
+    });
+}
+
+}
+
 
 private class TransactionsCard extends JPanel {
     public TransactionsCard() {
@@ -291,6 +429,7 @@ private class TransactionsCard extends JPanel {
         add(scrollPane);
     }
 }
+
     private class AccountsCard extends JPanel 
     {
         public AccountsCard() {
@@ -638,7 +777,7 @@ private class TransactionsCard extends JPanel {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(NewTransaction::new);
     }
-
+  
     class CircularImagePanel extends JPanel
     {
         private final Image image;
@@ -650,7 +789,7 @@ private class TransactionsCard extends JPanel {
             setPreferredSize(new Dimension(diameter, diameter));
             setOpaque(false);
         }
-
+ 
         @Override
         protected void paintComponent(Graphics g)
         {

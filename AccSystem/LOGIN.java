@@ -1,7 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
+import java.io.*;
 
 public class LOGIN {
 
@@ -12,11 +12,16 @@ public class LOGIN {
     private JPanel registerCard;
     private JPanel changePassCard;
 
+    private static final String LOGIN_FOLDER = "AccSystem" + File.separator + "LoginFolder";
+
+    public static String loggedInUser;
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(LOGIN::new);
     }
 
     public LOGIN() {
+        createLoginFolderIfNotExist();
         frame = new JFrame("Accounting System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1100, 650);
@@ -26,12 +31,18 @@ public class LOGIN {
         frame.setVisible(true);
     }
 
+    private void createLoginFolderIfNotExist() {
+        File folder = new File(LOGIN_FOLDER);
+        if (!folder.exists()) folder.mkdirs();
+    }
+
     private void showMainScreen() {
         bgPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon bg = new ImageIcon("C:\\Java\\ACCTG\\IMG\\pic1.png");
+                String imges = "AccSystem" + File.separator + "images" + File.separator + "pic1.png";
+                ImageIcon bg = new ImageIcon(imges);
                 g.drawImage(bg.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -48,12 +59,13 @@ public class LOGIN {
         bgPanel.add(getStartedBtn);
 
         frame.setContentPane(bgPanel);
-        frame.revalidate();
-        frame.repaint();
+        bgPanel.revalidate();
+        bgPanel.repaint();
     }
 
     private void showLoginOverlay() {
         if (loginCard != null && loginCard.isVisible()) return;
+
         int overlayX = 600;
         int overlayWidth = frame.getWidth() - overlayX;
         int overlayY = 0;
@@ -124,10 +136,48 @@ public class LOGIN {
         JButton loginBtn = new JButton("Log In");
         loginBtn.setBounds((overlayWidth - 200) / 2, 310, 200, 45);
         styleLoginButton(loginBtn, new Color(0, 64, 64));
-       loginBtn.addActionListener(e -> {
-    frame.dispose(); 
-    new NewTransaction();
+        loginBtn.addActionListener(e -> {
+    String username = usernameField.getText().trim();
+    String password = new String(passwordField.getPassword());
+
+    if (username.isEmpty() || password.isEmpty()) {
+        JOptionPane.showMessageDialog(frame, "Username and Password are required!");
+        return;
+    }
+
+    File userFile = new File(LOGIN_FOLDER, username + ".csv");
+    if (!userFile.exists()) {
+        JOptionPane.showMessageDialog(frame, "Account does not exist! Please register first.");
+        return;
+    }
+
+    boolean valid = false;
+    try (BufferedReader br = new BufferedReader(new FileReader(userFile))) {
+        br.readLine(); 
+        String line = br.readLine();
+        if (line != null) {
+            String[] parts = line.split(",");
+            if (parts.length >= 3 && parts[2].equals(password)) {
+                valid = true;
+            }
+        }
+    } catch (IOException ex) {
+        JOptionPane.showMessageDialog(frame, "Error reading account data!");
+        return;
+    }
+
+    if (!valid) {
+        JOptionPane.showMessageDialog(frame, "Invalid password!");
+        return;
+    }
+
+    loggedInUser = username;
+
+    loginCard.setVisible(false);
+    frame.dispose();
+    new NewTransaction(); 
 });
+
         loginCard.add(loginBtn);
 
         JButton registerBtn = new JButton("Register");
@@ -216,9 +266,59 @@ public class LOGIN {
         doneBtn.setBounds((overlayWidth - 200) / 2, 430, 200, 45);
         styleLoginButton(doneBtn, new Color(0, 64, 64));
         doneBtn.addActionListener(e -> {
-            registerCard.setVisible(false);
-            showLoginOverlay();
-        });
+    String email = emailField.getText().trim();
+    String phone = phoneField.getText().trim();
+    String pass = new String(passField.getPassword());
+    String confirm = new String(confirmField.getPassword());
+
+    if (!email.contains("@") || !email.contains(".")) {
+        JOptionPane.showMessageDialog(registerCard, "Invalid email format!");
+        return;
+    }
+
+    if (!phone.matches("\\d{11}")) {
+        JOptionPane.showMessageDialog(registerCard, "Phone number must be 11 digits!");
+        return;
+    }
+   
+    if (!pass.equals(confirm)) {
+        JOptionPane.showMessageDialog(registerCard, "Passwords do not match!");
+        return;
+    }
+
+    File mainFolder = new File("AccSystem");
+    if (!mainFolder.exists()) {
+        mainFolder.mkdirs();
+    }
+
+    File loginFolder = new File(mainFolder, "LoginFolder");
+    if (!loginFolder.exists()) {
+        loginFolder.mkdirs();
+    }
+
+    try {
+        File userFile = new File(loginFolder, email + ".csv");
+
+        if (!userFile.exists()) {
+            userFile.createNewFile();
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(userFile))) {
+            bw.write("email,phone,password");
+            bw.newLine();
+            bw.write(email + "," + phone + "," + pass);
+        }
+
+        JOptionPane.showMessageDialog(registerCard, "Registration successful!");
+        registerCard.setVisible(false);
+        showLoginOverlay();
+
+    } catch (IOException ex) {
+        JOptionPane.showMessageDialog(registerCard, "Failed to save account!");
+    }
+});
+
+
         registerCard.add(doneBtn);
 
         bgPanel.add(registerCard, Integer.valueOf(2));
@@ -314,13 +414,11 @@ public class LOGIN {
 
     class RoundedTextField extends JTextField {
         private int radius;
-
         public RoundedTextField(int radius) {
             this.radius = radius;
             setOpaque(false);
             setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
@@ -329,42 +427,38 @@ public class LOGIN {
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
             super.paintComponent(g);
         }
-
         @Override
         protected void paintBorder(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(Color.LIGHT_GRAY);
             g2.setStroke(new BasicStroke(1));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, radius, radius);
         }
     }
 
     class RoundedPasswordField extends JPasswordField {
         private int radius;
-
         public RoundedPasswordField(int radius) {
             this.radius = radius;
             setOpaque(false);
             setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(getBackground());
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+            g2.fillRoundRect(0,0,getWidth(),getHeight(),radius,radius);
             super.paintComponent(g);
         }
-
         @Override
         protected void paintBorder(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(Color.LIGHT_GRAY);
             g2.setStroke(new BasicStroke(1));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,radius,radius);
         }
     }
 
