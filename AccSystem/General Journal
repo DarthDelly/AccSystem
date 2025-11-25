@@ -744,3 +744,52 @@ public class NewTransaction {
         SwingUtilities.invokeLater(NewTransaction::new);
     }
 }
+
+
+
+
+
+
+//Seperate code ni sa journal, di kaayo ko kamao mo connect
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import java.awt.*;
+
+public class GeneralJournalCard extends JPanel {
+
+    public GeneralJournalCard(DefaultTableModel journalModel) {
+
+        setLayout(null);
+        setBackground(Color.WHITE);
+
+        JLabel title = new JLabel("General Journal", SwingConstants.CENTER);
+        title.setFont(new Font("Dialog", Font.BOLD, 28));
+        title.setBounds(0, 20, 840, 40);
+        add(title);
+
+        JTable table = new JTable(journalModel);
+        table.setFont(new Font("Dialog", Font.PLAIN, 14));
+        table.setRowHeight(25);
+        table.setFillsViewportHeight(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JTableHeader header = table.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.setResizingAllowed(false);
+        header.setFont(new Font("Dialog", Font.BOLD, 14));
+        header.setBackground(new Color(0, 64, 64));
+        header.setForeground(Color.WHITE);
+
+        table.getColumnModel().getColumn(0).setPreferredWidth(100);
+        table.getColumnModel().getColumn(1).setPreferredWidth(175);
+        table.getColumnModel().getColumn(2).setPreferredWidth(175);
+        table.getColumnModel().getColumn(3).setPreferredWidth(150);
+        table.getColumnModel().getColumn(4).setPreferredWidth(150);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBounds(40, 80, 745, 380);
+        add(scrollPane);
+    }
+}
